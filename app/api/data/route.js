@@ -6,11 +6,11 @@ import { cookies } from 'next/headers';
 export async function GET() {
   try {
     const data = await kv.get('tracker-data');
-    return NextResponse.json(data || { hours: {}, notes: {}, highlights: {} });
+    return NextResponse.json(data || { hours: {}, notes: {}, highlights: {}, misc: {} });
   } catch (error) {
     console.error('Failed to fetch data:', error);
     // Return empty data if KV not configured (for local dev)
-    return NextResponse.json({ hours: {}, notes: {}, highlights: {} });
+    return NextResponse.json({ hours: {}, notes: {}, highlights: {}, misc: {} });
   }
 }
 
