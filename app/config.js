@@ -28,7 +28,8 @@ const config = {
       priority: 1,
       notes: "Complete the full neural networks series",
       startDay: 6,
-      duration: 14,
+      duration: 26, // Active until Jan 31 for logging
+      targetEndDay: 19, // Target only counts until Jan 19 (original 14 days, 56 hours) to keep total at 290
       resources: [
         {
           name: "YouTube Playlist",

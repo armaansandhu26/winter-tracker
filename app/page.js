@@ -246,9 +246,29 @@ export default function WinterTracker() {
       totalLogged = 0;
     dates.forEach(({ day }) => {
       if (track.startDay && day < track.startDay) return;
-      if (track.duration && day >= track.startDay + track.duration) return;
-      totalTarget += track.hoursPerDay;
-      totalLogged += hours[`${track.id}-${day}`] || 0;
+      
+      // Check if track is active on this day
+      const isActive = !track.duration || day < track.startDay + track.duration;
+      
+      // For tracks with targetEndDay (buffer behavior): target only counts up to targetEndDay
+      // For tracks without targetEndDay (normal behavior): target counts all active days
+      if (track.targetEndDay) {
+        // Buffer behavior: target only counts up to targetEndDay
+        const targetEnd = track.targetEndDay + 1; // targetEndDay is inclusive
+        if (day < targetEnd) {
+          totalTarget += track.hoursPerDay;
+        }
+        // But logged hours count all active days (including buffer days)
+        if (isActive) {
+          totalLogged += hours[`${track.id}-${day}`] || 0;
+        }
+      } else {
+        // Normal behavior: both target and logged hours count all active days
+        if (isActive) {
+          totalTarget += track.hoursPerDay;
+          totalLogged += hours[`${track.id}-${day}`] || 0;
+        }
+      }
     });
     return { totalTarget, totalLogged };
   };
@@ -272,15 +292,30 @@ export default function WinterTracker() {
     config.tracks.forEach((track) => {
       if (track.hoursPerDay > 0) {
         if (track.startDay && today < track.startDay) return;
-        if (
-          track.startDay &&
-          track.duration &&
-          today >= track.startDay + track.duration
-        )
-          return;
-        dailyTarget += track.hoursPerDay;
-        const key = `${track.id}-${today}`;
-        dailyLogged += hours[key] || 0;
+        
+        // Check if track is active today
+        const isActive = !track.duration || today < track.startDay + track.duration;
+        
+        // For tracks with targetEndDay (buffer behavior): target only counts up to targetEndDay
+        // For tracks without targetEndDay (normal behavior): target counts all active days
+        if (track.targetEndDay) {
+          // Buffer behavior: only add to target if today <= targetEndDay
+          if (today <= track.targetEndDay) {
+            dailyTarget += track.hoursPerDay;
+          }
+          // But logged hours count if track is active (including buffer days)
+          if (isActive) {
+            const key = `${track.id}-${today}`;
+            dailyLogged += hours[key] || 0;
+          }
+        } else {
+          // Normal behavior: both target and logged hours count if active
+          if (isActive) {
+            dailyTarget += track.hoursPerDay;
+            const key = `${track.id}-${today}`;
+            dailyLogged += hours[key] || 0;
+          }
+        }
       }
     });
 
@@ -306,21 +341,35 @@ export default function WinterTracker() {
       config.tracks.forEach((track) => {
         if (track.hoursPerDay > 0) {
           if (track.startDay && day < track.startDay) return;
-          if (
-            track.startDay &&
-            track.duration &&
-            day >= track.startDay + track.duration
-          )
-            return;
-          dayIdeal += track.hoursPerDay;
+          
+          // Check if track is active on this day
+          const isActive = !track.duration || day < track.startDay + track.duration;
+          
+          // For tracks with targetEndDay (buffer behavior): ideal only counts up to targetEndDay
+          // For tracks without targetEndDay (normal behavior): ideal counts all active days
+          if (track.targetEndDay) {
+            // Buffer behavior: only add to ideal if day <= targetEndDay
+            if (day <= track.targetEndDay && isActive) {
+              dayIdeal += track.hoursPerDay;
+            }
+          } else {
+            // Normal behavior: add to ideal if active
+            if (isActive) {
+              dayIdeal += track.hoursPerDay;
+            }
+          }
         }
       });
 
-      // Calculate actual hours for this day
+      // Calculate actual hours for this day (count all logged hours, including buffer days)
       let dayActual = 0;
       config.tracks.forEach((track) => {
-        const key = `${track.id}-${day}`;
-        dayActual += hours[key] || 0;
+        // Only count hours if track is active on this day (within duration)
+        const isActive = !track.startDay || (day >= track.startDay && (!track.duration || day < track.startDay + track.duration));
+        if (isActive) {
+          const key = `${track.id}-${day}`;
+          dayActual += hours[key] || 0;
+        }
       });
 
       // Add misc time to actual hours (for productive hours tracking)
